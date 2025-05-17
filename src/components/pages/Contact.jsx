@@ -24,7 +24,7 @@ const Contact = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/contact/submit', formData);
+      const response = await axios.post('https://hirehub-backend-zm8z.onrender.com/api/v1/contact/submit', formData);
       
       if (response.data.success) {
         toast.success('Message sent successfully!');

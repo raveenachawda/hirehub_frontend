@@ -7,7 +7,7 @@ import Navbar from "./shared/Navbar";
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: "https://hirehub-backend-zm8z.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },

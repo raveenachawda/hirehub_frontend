@@ -10,7 +10,7 @@ import {
 } from "../ui/table";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Edit2, MoreHorizontal, Trash2, Loader2 } from "lucide-react";
+import { Edit2, MoreHorizontal, Trash2, Loader2, LogOut } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
@@ -25,11 +25,13 @@ const CompaniesTable = ({
   showJoinButton,
   isLoading,
   onCompanyDeleted,
+  onCompanyLeft,
 }) => {
   const { searchCompanyByText } = useSelector((store) => store.company);
   const [filterCompany, setFilterCompany] = useState(companies);
   const [joiningCompanyId, setJoiningCompanyId] = useState(null);
   const [deletingCompanyId, setDeletingCompanyId] = useState(null);
+  const [leavingCompanyId, setLeavingCompanyId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,6 +47,32 @@ const CompaniesTable = ({
       await onJoinCompany(companyId);
     } finally {
       setJoiningCompanyId(null);
+    }
+  };
+
+  const handleLeaveCompany = async (companyId) => {
+    if (!window.confirm("Are you sure you want to leave this company?")) {
+      return;
+    }
+
+    setLeavingCompanyId(companyId);
+    try {
+      const res = await axios.post(
+        `${COMPANY_API_END_POINT}/leave/${companyId}`,
+        {},
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        toast.success("Successfully left the company");
+        if (onCompanyLeft) {
+          onCompanyLeft(companyId);
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to leave company");
+    } finally {
+      setLeavingCompanyId(null);
     }
   };
 
@@ -112,16 +140,7 @@ const CompaniesTable = ({
               </td>
               <td className="px-4 py-2">
                 <div className="flex gap-2">
-                  <Link to={`/admin/companies/${company._id}`}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-[#ff6b6b] hover:text-[#ff5252]"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                  {showJoinButton && (
+                  {showJoinButton ? (
                     <Button
                       variant="default"
                       size="sm"
@@ -138,20 +157,26 @@ const CompaniesTable = ({
                         "Join Company"
                       )}
                     </Button>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleLeaveCompany(company._id)}
+                      disabled={leavingCompanyId === company._id}
+                    >
+                      {leavingCompanyId === company._id ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Leaving...
+                        </>
+                      ) : (
+                        <>
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Leave
+                        </>
+                      )}
+                    </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDeleteCompany(company._id)}
-                    disabled={deletingCompanyId === company._id}
-                  >
-                    {deletingCompanyId === company._id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </Button>
                 </div>
               </td>
             </tr>

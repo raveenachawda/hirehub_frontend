@@ -33,6 +33,7 @@ import {
   JOB_API_END_POINT,
   USER_API_END_POINT,
   CONTACT_API_END_POINT,
+  DASHBOARD_STATS_API_END_POINT,
 } from "@/utils/constant";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
@@ -42,11 +43,20 @@ import { setAllAdminJobs } from "@/redux/jobSlice";
 import { setUser } from "@/redux/authSlice";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     recruiters: 0,
     students: 0,
@@ -90,6 +100,10 @@ const AdminDashboard = () => {
   const [replyLoading, setReplyLoading] = useState(false);
   const [showOnlyMessages, setShowOnlyMessages] = useState(false);
   const [error, setError] = useState(null);
+  const [showCreateCompanyModal, setShowCreateCompanyModal] = useState(false);
+  const [createCompanyLoading, setCreateCompanyLoading] = useState(false);
+  const [recentJobs, setRecentJobs] = useState([]);
+  const [recentApplications, setRecentApplications] = useState([]);
 
   const dispatch = useDispatch();
   const { singleCompany } = useSelector((store) => store.company);
@@ -97,118 +111,30 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Simulate API calls
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        setStats({
-          recruiters: 42,
-          students: 156,
-          jobs: 89,
-          applications: 324,
-          activeCompanies: 28,
-          pendingApprovals: 15,
-        });
-
-        setRecruiters([
-          {
-            id: 1,
-            name: "John Doe",
-            email: "john@company.com",
-            company: "Tech Corp",
-            status: "active",
-            joinDate: "2024-01-15",
-          },
-          {
-            id: 2,
-            name: "Jane Smith",
-            email: "jane@startup.io",
-            company: "StartUp Inc",
-            status: "active",
-            joinDate: "2024-02-01",
-          },
-        ]);
-
-        setStudents([
-          {
-            id: 1,
-            name: "Alice Johnson",
-            email: "alice@university.edu",
-            university: "State University",
-            status: "verified",
-            joinDate: "2024-01-10",
-          },
-          {
-            id: 2,
-            name: "Bob Williams",
-            email: "bob@college.edu",
-            university: "Tech College",
-            status: "pending",
-            joinDate: "2024-02-15",
-          },
-        ]);
-
-        setJobs([
-          {
-            id: 1,
-            title: "Frontend Developer",
-            company: "Tech Corp",
-            type: "Full-time",
-            applicants: 24,
-            postedDate: "2024-02-01",
-          },
-          {
-            id: 2,
-            title: "Backend Engineer",
-            company: "StartUp Inc",
-            type: "Contract",
-            applicants: 18,
-            postedDate: "2024-02-10",
-          },
-        ]);
-
-        setApplications([
-          {
-            id: 1,
-            candidate: "Alice Johnson",
-            job: "Frontend Developer",
-            status: "reviewed",
-            date: "2024-02-15",
-          },
-          {
-            id: 2,
-            candidate: "Bob Williams",
-            job: "Backend Engineer",
-            status: "pending",
-            date: "2024-02-16",
-          },
-        ]);
-
-        setNotifications([
-          {
-            id: 1,
-            type: "new_application",
-            message: "New application received for Frontend Developer",
-            time: "5m ago",
-          },
-          {
-            id: 2,
-            type: "new_recruiter",
-            message: "New recruiter registration from Tech Corp",
-            time: "1h ago",
-          },
-        ]);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchDashboardStats();
   }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(DASHBOARD_STATS_API_END_POINT, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (response.data.success) {
+        setStats(response.data.stats);
+        setRecentJobs(response.data.recentJobs);
+        setRecentApplications(response.data.recentApplications);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      toast.error("Failed to fetch dashboard statistics");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
@@ -468,11 +394,16 @@ const AdminDashboard = () => {
 
   const handleCreateCompany = async (e) => {
     e.preventDefault();
-    if (!newCompanyName.trim()) return;
+    if (!newCompanyName.trim()) {
+      toast.error("Please enter a company name");
+      return;
+    }
+
     try {
+      setCreateCompanyLoading(true);
       const res = await axios.post(
         `${COMPANY_API_END_POINT}/register`,
-        { companyName: newCompanyName },
+        { companyName: newCompanyName.trim() },
         {
           headers: { "Content-Type": "application/json" },
           withCredentials: true,
@@ -482,14 +413,15 @@ const AdminDashboard = () => {
       if (res?.data?.success) {
         dispatch(setSingleCompany(res.data.company));
         toast.success(res.data.message);
-        const companyId = res?.data?.company?._id;
-        setShowCreateCompany(false);
+        setShowCreateCompanyModal(false);
         setNewCompanyName("");
         setActiveTab("company-setup");
       }
     } catch (error) {
-      console.log(error);
+      console.error("Error creating company:", error);
       toast.error(error.response?.data?.message || "Error creating company");
+    } finally {
+      setCreateCompanyLoading(false);
     }
   };
 
@@ -696,111 +628,123 @@ const AdminDashboard = () => {
     }
   };
 
-  const renderDashboardContent = () => (
-    <>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Total Recruiters"
-          value={stats.recruiters}
-          icon={<Users className="text-indigo-600" />}
-          onClick={() => handleStatCardClick("recruiters")}
-          trend="+12%"
-        />
-        <StatCard
-          title="Total Students"
-          value={stats.students}
-          icon={<Users className="text-indigo-600" />}
-          onClick={() => handleStatCardClick("students")}
-          trend="+8%"
-        />
-        <StatCard
-          title="Total Jobs"
-          value={stats.jobs}
-          icon={<Briefcase className="text-indigo-600" />}
-          onClick={() => handleStatCardClick("jobs")}
-          trend="+15%"
-        />
-      </div>
+  const renderDashboardContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      );
+    }
 
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
-        <div className="space-y-4">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg"
-            >
-              <div className="p-2 bg-indigo-100 rounded-full">
-                <Bell size={16} className="text-indigo-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-800">{notification.message}</p>
-                <p className="text-xs text-gray-500">{notification.time}</p>
-              </div>
+    return (
+      <div className="space-y-6">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatCard
+            title="Total Recruiters"
+            value={stats.recruiters}
+            icon="👥"
+            color="bg-blue-500"
+          />
+          <StatCard
+            title="Total Students"
+            value={stats.students}
+            icon="🎓"
+            color="bg-green-500"
+          />
+          <StatCard
+            title="Total Jobs"
+            value={stats.jobs}
+            icon="💼"
+            color="bg-purple-500"
+          />
+          <StatCard
+            title="Total Applications"
+            value={stats.applications}
+            icon="📝"
+            color="bg-yellow-500"
+          />
+          <StatCard
+            title="Active Companies"
+            value={stats.activeCompanies}
+            icon="🏢"
+            color="bg-indigo-500"
+          />
+          <StatCard
+            title="Pending Approvals"
+            value={stats.pendingApprovals}
+            icon="⏳"
+            color="bg-red-500"
+          />
+        </div>
+
+        {/* Recent Jobs and Applications */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Jobs */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Recent Jobs</h3>
+            <div className="space-y-4">
+              {recentJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="border-b pb-4 last:border-b-0 last:pb-0"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{job.title}</h4>
+                      <p className="text-sm text-gray-600">{job.company}</p>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {new Date(job.postedDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center text-sm text-gray-500">
+                    <span className="mr-4">{job.type}</span>
+                    <span>{job.applicants} applicants</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Recent Jobs and Applications */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">Recent Jobs</h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {jobs.slice(0, 5).map((job) => (
-              <div key={job.id} className="p-4 hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{job.title}</h4>
-                    <p className="text-sm text-gray-500">{job.company}</p>
+          {/* Recent Applications */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Recent Applications</h3>
+            <div className="space-y-4">
+              {recentApplications.map((app) => (
+                <div
+                  key={app.id}
+                  className="border-b pb-4 last:border-b-0 last:pb-0"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{app.candidate}</h4>
+                      <p className="text-sm text-gray-600">{app.job}</p>
+                    </div>
+                    <span
+                      className={`text-sm px-2 py-1 rounded ${
+                        app.status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : app.status === "accepted"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {app.status}
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-500">
-                    {job.postedDate}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center space-x-2">
-                  <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
-                    {job.type}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {job.applicants} applicants
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">Recent Applications</h3>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {applications.slice(0, 5).map((application) => (
-              <div key={application.id} className="p-4 hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      {application.candidate}
-                    </h4>
-                    <p className="text-sm text-gray-500">{application.job}</p>
+                  <div className="mt-2 text-sm text-gray-500">
+                    {new Date(app.date).toLocaleDateString()}
                   </div>
-                  <StatusBadge status={application.status} />
                 </div>
-                <div className="mt-2 text-sm text-gray-500">
-                  Applied on {application.date}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </>
-  );
+    );
+  };
 
   const renderJobsContent = () => (
     <div className="space-y-6">
@@ -1437,6 +1381,54 @@ const AdminDashboard = () => {
     );
   };
 
+  const renderCreateCompanyModal = () => (
+    <Dialog
+      open={showCreateCompanyModal}
+      onOpenChange={setShowCreateCompanyModal}
+    >
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Create New Company</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleCreateCompany} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="companyName">Company Name</Label>
+            <Input
+              id="companyName"
+              value={newCompanyName}
+              onChange={(e) => setNewCompanyName(e.target.value)}
+              placeholder="Enter company name"
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCreateCompanyModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={createCompanyLoading}
+              className="bg-black hover:bg-[#F83002] text-white"
+            >
+              {createCompanyLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Company"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="min-h-screen bg-[linear-gradient(to_right,_#ffe5e0,_#f8f8f8,_#ffe5e0)]">
       <Navbar />
@@ -1535,7 +1527,7 @@ const AdminDashboard = () => {
           <main className="p-6">
             {loading ? (
               <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ff6b6b]"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
               </div>
             ) : (
               <>
@@ -1562,11 +1554,12 @@ const AdminDashboard = () => {
                   <div className="space-y-6">
                     <div className="flex justify-between items-center">
                       <h2 className="text-2xl font-bold">Companies</h2>
-                      <Link to="/admin/companies/new">
-                        <Button className="bg-[#ff5a3a] hover:bg-[#ff6b6b]">
-                          Add New Company
-                        </Button>
-                      </Link>
+                      <Button
+                        onClick={() => setShowCreateCompanyModal(true)}
+                        className="bg-[#ff5a3a] hover:bg-[#ff6b6b] text-white"
+                      >
+                        Add New Company
+                      </Button>
                     </div>
 
                     {companyLoading ? (
@@ -1643,48 +1636,6 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                         ))}
-                      </div>
-                    )}
-
-                    {showCreateCompany && (
-                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-xl shadow p-8 w-full max-w-lg">
-                          <h2 className="text-2xl font-bold mb-4">
-                            Create New Company
-                          </h2>
-                          <form onSubmit={handleCreateCompany}>
-                            <div className="mb-4">
-                              <label className="block text-sm font-medium mb-2">
-                                Company Name
-                              </label>
-                              <input
-                                type="text"
-                                value={newCompanyName}
-                                onChange={(e) =>
-                                  setNewCompanyName(e.target.value)
-                                }
-                                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b6b]"
-                                placeholder="Enter company name"
-                                required
-                              />
-                            </div>
-                            <div className="flex justify-end gap-4">
-                              <button
-                                type="button"
-                                onClick={() => setShowCreateCompany(false)}
-                                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                type="submit"
-                                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900"
-                              >
-                                Create
-                              </button>
-                            </div>
-                          </form>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -1806,25 +1757,24 @@ const AdminDashboard = () => {
           </main>
         </div>
       </div>
+      {renderCreateCompanyModal()}
     </div>
   );
 };
 
 // Reusable Components
-const StatCard = ({ title, value, icon, onClick, trend }) => (
-  <button
-    onClick={onClick}
-    className="bg-white rounded-lg shadow p-6 flex items-start hover:shadow-md transition-shadow cursor-pointer text-left"
-  >
-    <div className="p-3 rounded-lg bg-indigo-50 mr-4">{icon}</div>
-    <div>
-      <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-      <div className="flex items-baseline mt-1">
-        <p className="text-2xl font-bold">{value}</p>
-        {trend && <span className="ml-2 text-sm text-green-600">{trend}</span>}
+const StatCard = ({ title, value, icon, color }) => (
+  <div className="bg-white rounded-lg shadow p-6">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-600">{title}</p>
+        <p className="text-2xl font-semibold mt-1">{value}</p>
+      </div>
+      <div className={`${color} text-white p-3 rounded-full`}>
+        <span className="text-2xl">{icon}</span>
       </div>
     </div>
-  </button>
+  </div>
 );
 
 const StatusBadge = ({ status }) => {

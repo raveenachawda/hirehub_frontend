@@ -1,106 +1,233 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { MoreHorizontal } from "lucide-react";
-import { useSelector } from "react-redux";
+import { Avatar, AvatarImage } from "../ui/avatar";
+import { Button } from "../ui/button";
+import { Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Application_API_END_POINT } from "@/utils/constant";
 import axios from "axios";
-
-const shortlistingStatus = ["Accepted", "Rejected"];
+import { Application_API_END_POINT } from "@/utils/constant";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { useSelector } from "react-redux";
 
 const ApplicantsTable = () => {
   const { applicants } = useSelector((store) => store.application);
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
-  const statusHandler = async (status, id) => {
-    console.log("called");
+  const handleStatusChange = async (applicationId, newStatus) => {
+    setUpdatingStatus(applicationId);
     try {
-      axios.defaults.withCredentials = true;
       const res = await axios.post(
-        `${Application_API_END_POINT}/status/${id}/update`,
-        { status }
+        `${Application_API_END_POINT}/status/${applicationId}/update`,
+        { status: newStatus },
+        { withCredentials: true }
       );
-      console.log(res);
+
       if (res.data.success) {
         toast.success(res.data.message);
       }
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to update status");
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
+  const handleViewProfile = (applicant) => {
+    setSelectedApplicant(applicant);
+    setPreviewOpen(true);
+  };
+
+  if (!applicants || !applicants.applications) {
+    return <div>No applications found</div>;
+  }
+
   return (
-    <div>
-      <Table>
-        <TableCaption>A list of your recent applied user</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>FullName</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Resume</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {applicants &&
-            applicants?.applications?.map((item) => (
-              <tr key={item._id}>
-                <TableCell>{item?.applicant?.fullname}</TableCell>
-                <TableCell>{item?.applicant?.email}</TableCell>
-                <TableCell>{item?.applicant?.phoneNumber}</TableCell>
+    <div className="space-y-4">
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="text-xl font-semibold mb-2">{applicants.jobTitle}</h2>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Applicant</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Applied On</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {applicants.applications.map((application) => (
+              <TableRow key={application._id}>
                 <TableCell>
-                  {item.applicant?.profile?.resume ? (
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage
+                        src={
+                          application.applicant.profile?.profilePhoto ||
+                          "https://www.shutterstock.com/image-vector/circle-line-simple-design-logo-600nw-2174926871.jpg"
+                        }
+                        alt={application.applicant.fullname}
+                      />
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">
+                        {application.applicant.fullname}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {application.applicant.profile?.bio ||
+                          "No bio available"}
+                      </p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-1">
+                    <p className="text-sm">{application.applicant.email}</p>
+                    <p className="text-sm text-gray-500">
+                      {application.applicant.phoneNumber || "No phone number"}
+                    </p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    defaultValue={application.status}
+                    onValueChange={(value) =>
+                      handleStatusChange(application._id, value)
+                    }
+                    disabled={updatingStatus === application._id}
+                  >
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="reviewing">Reviewing</SelectItem>
+                      <SelectItem value="shortlisted">Shortlisted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  {new Date(application.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewProfile(application.applicant)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Profile
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Profile Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Applicant Profile</DialogTitle>
+          </DialogHeader>
+          {selectedApplicant && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-20 h-20">
+                  <AvatarImage
+                    src={
+                      selectedApplicant.profile?.profilePhoto ||
+                      "https://www.shutterstock.com/image-vector/circle-line-simple-design-logo-600nw-2174926871.jpg"
+                    }
+                    alt={selectedApplicant.fullname}
+                  />
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    {selectedApplicant.fullname}
+                  </h3>
+                  <p className="text-gray-600">{selectedApplicant.email}</p>
+                  <p className="text-gray-600">
+                    {selectedApplicant.phoneNumber || "No phone number"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Bio</h4>
+                <p className="text-gray-600">
+                  {selectedApplicant.profile?.bio || "No bio available"}
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Skills</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedApplicant.profile?.skills?.map((skill, index) => (
+                    <span
+                      key={index}
+                      className="bg-gray-100 px-3 py-1 rounded-full text-sm"
+                    >
+                      {skill.trim()}
+                    </span>
+                  )) || "No skills listed"}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Resume</h4>
+                {selectedApplicant.profile?.resume ? (
+                  <div className="flex items-center gap-2">
                     <a
-                      className="text-blue-600 cursor-pointer"
-                      href={item?.applicant?.profile?.resume}
+                      href={selectedApplicant.profile.resume}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
                     >
-                      {item?.applicant?.profile?.resumeOriginalName}
+                      {selectedApplicant.profile.resumeOriginalName}
                     </a>
-                  ) : (
-                    <span>NA</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {item?.applicant?.createdAt
-                    ? item.applicant.createdAt.split("T")[0]
-                    : "NA"}
-                </TableCell>
-                <TableCell className="float-right cursor-pointer">
-                  <Popover>
-                    <PopoverTrigger>
-                      <MoreHorizontal />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-32">
-                      {shortlistingStatus.map((status, index) => {
-                        return (
-                          <div
-                            onClick={() => statusHandler(status, item?._id)}
-                            key={index}
-                            className="flex w-fit items-center my-2 cursor-pointer"
-                          >
-                            <span>{status}</span>
-                          </div>
-                        );
-                      })}
-                    </PopoverContent>
-                  </Popover>
-                </TableCell>
-              </tr>
-            ))}
-        </TableBody>
-      </Table>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        window.open(selectedApplicant.profile.resume, "_blank")
+                      }
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Preview
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">No resume uploaded</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

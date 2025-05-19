@@ -109,10 +109,14 @@ const Companies = () => {
 
       if (res.data.success) {
         toast.success(res.data.message);
-        const joinedRes = await axios.get(`${COMPANY_API_END_POINT}/joined`, {
-          withCredentials: true,
-        });
+        const joinedRes = await axios.get(
+          `${COMPANY_API_END_POINT}/joined`,
+          {
+            withCredentials: true,
+          }
+        );
         if (joinedRes.data.success) {
+          console.log(joinedRes.data.companies);  
           dispatch(setJoinedCompanies(joinedRes.data.companies));
         }
       }

@@ -1,21 +1,20 @@
-import axios from 'axios';
-import { useState } from 'react';
-
-import { toast } from 'sonner';
-
+import axios from "axios";
+import { useState } from "react";
+import { toast } from "sonner";
+import { CONTACT_API_END_POINT } from "@/utils/constant";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
+    name: "",
+    email: "",
+    message: "",
   });
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -24,14 +23,17 @@ const Contact = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('https://hirehub-backend-zm8z.onrender.com/api/v1/contact/submit', formData);
-      
+      const response = await axios.post(
+        `${CONTACT_API_END_POINT}/submit`,
+        formData
+      );
+
       if (response.data.success) {
-        toast.success('Message sent successfully!');
-        setFormData({ name: '', email: '', message: '' });
+        toast.success("Message sent successfully!");
+        setFormData({ name: "", email: "", message: "" });
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error sending message');
+      toast.error(error.response?.data?.message || "Error sending message");
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,10 @@ const Contact = () => {
         <div className="mt-12 bg-white py-8 px-6 shadow rounded-lg sm:px-10">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Name
               </label>
               <div className="mt-1">
@@ -69,7 +74,10 @@ const Contact = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email
               </label>
               <div className="mt-1">
@@ -86,7 +94,10 @@ const Contact = () => {
             </div>
 
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="message"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Message
               </label>
               <div className="mt-1">
@@ -107,10 +118,10 @@ const Contact = () => {
                 type="submit"
                 disabled={loading}
                 className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                  loading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
-                {loading ? 'Sending...' : 'Send Message'}
+                {loading ? "Sending..." : "Send Message"}
               </button>
             </div>
           </form>
@@ -120,4 +131,4 @@ const Contact = () => {
   );
 };
 
-export default Contact; 
+export default Contact;

@@ -4,10 +4,11 @@ import axios from "axios";
 import { toast } from "sonner";
 import Footer from "./shared/Footer";
 import Navbar from "./shared/Navbar";
+import { CONTACT_API_END_POINT } from "@/utils/constant";
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: "https://hirehub-backend-zm8z.onrender.com",
+  baseURL: import.meta.env.VITE_BACKEND_API_URL || "http://localhost:8000",
   headers: {
     "Content-Type": "application/json",
   },

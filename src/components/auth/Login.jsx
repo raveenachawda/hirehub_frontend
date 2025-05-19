@@ -39,6 +39,14 @@ const Login = () => {
       });
 
       if (res.data.success) {
+        // Check if user is blocked
+        if (res.data.user.status === "blocked") {
+          toast.error(
+            "Your account has been blocked. Please contact the administrator."
+          );
+          return;
+        }
+
         dispatch(setUser(res.data.user));
         toast.success(res.data.message);
 

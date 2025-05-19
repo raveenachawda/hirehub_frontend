@@ -91,14 +91,14 @@ const Footer = () => {
         {/* Contact Section */}
         <div>
           <h2 className="text-2xl font-semibold mb-4"><Link to="/contactus">Contact Us</Link></h2>
-          <p className="text-gray-400">Email: support@jobportal.com</p>
-          <p className="text-gray-400">Phone: +123 456 7890</p>
+          <p className="text-gray-400">Email: hirehub@jobportal.com</p>
+          <p className="text-gray-400">Phone: 9174991074</p>
           <p className="text-gray-400">Location: New York, USA</p>
         </div>
       </div>
 
       <div className="mt-8 text-center text-gray-500 border-t border-gray-700 pt-4">
-        &copy; {new Date().getFullYear()} Job Portal. All rights reserved.
+        &copy; {new Date().getFullYear()} hirehub. All rights reserved.
       </div>
     </footer>
   );

@@ -1,4 +1,7 @@
 import React from "react";
+import offer1 from "../assets/offer-1.jpg";
+import offer2 from "../assets/offer-2.jpg";
+import offer3 from "../assets/offer-3.jpg";
 
 const OfferSection = () => {
   const offers = [
@@ -6,19 +9,19 @@ const OfferSection = () => {
       id: "01",
       title: "Job Recommendation",
       description: "Personalized job matches tailored to your skills and preferences",
-      image: "./src/assets/offer-1.jpg",
+      image: offer1,
     },
     {
       id: "02",
       title: "Create & Build Portfolio",
       description: "Showcase your expertise with professional portfolio design",
-      image: "./src/assets/offer-2.jpg",
+      image: offer2,
     },
     {
       id: "03",
       title: "Career Consultation",
       description: "Receive expert advice to navigate your career path",
-      image: "./src/assets/offer-3.jpg",
+      image: offer3,
     },
   ];
 

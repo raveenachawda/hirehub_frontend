@@ -9,7 +9,7 @@ const CandidateDashboard = () => {
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${candidatedashboardImage})` }}
+      style={{ backgroundImage: candidatedashboardImage }}
     >
       <Navbar />
       <div className="flex flex-col lg:flex-row">

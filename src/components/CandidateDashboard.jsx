@@ -5,11 +5,12 @@ import Slidebar from "./Slidebar";
 import { Outlet } from "react-router-dom";
 import CandidateMainContent from "./CandidateMainContent";
 import candidatedashboardImage from "../assets/candidatedashboardImage.jpg";
+
 const CandidateDashboard = () => {
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: candidatedashboardImage }}
+      style={{ backgroundImage: `url(${candidatedashboardImage})` }}
     >
       <Navbar />
       <div className="flex flex-col lg:flex-row">
@@ -20,7 +21,7 @@ const CandidateDashboard = () => {
 
         {/* Main Content */}
         <main className="flex-1 p-6">
-          <Outlet /> 
+          <Outlet />
           {/* <CandidateMainContent/> */}
         </main>
       </div>
